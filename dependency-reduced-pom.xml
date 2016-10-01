@@ -4,10 +4,11 @@
   <groupId>com.github.ffremont</groupId>
   <artifactId>downloader</artifactId>
   <name>downloader</name>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0</version>
   <scm>
     <connection>scm:git:https://github.com/ffremont/Downloader.git</connection>
     <developerConnection>scm:git:https://github.com/ffremont/Downloader.git</developerConnection>
+    <tag>1.0</tag>
     <url>https://github.com/ffremont/Downloader.git</url>
   </scm>
   <build>

@@ -22,7 +22,7 @@ public class App {
 
     public static void main(String[] args) throws IOException {
         Path conf = System.getProperty("conf") == null ? Paths.get("./films.txt") : Paths.get(System.getProperty("conf"));
-        Path films = System.getProperty("films") == null ? Paths.get("films") : Paths.get(System.getProperty("films"));
+        Path films = System.getProperty("files") == null ? Paths.get("files") : Paths.get(System.getProperty("files"));
         int threads = System.getProperty("threads") == null ? 3 : Integer.valueOf(System.getProperty("threads"));
 
         if (!Files.exists(films)) {
@@ -47,7 +47,7 @@ public class App {
                 }
             }
         } catch (IOException ex) {
-            LOGGER.error("Impossible de récupérer la liste des films", ex);
+            LOGGER.error("Impossible de récupérer la liste des fichiers", ex);
         } finally{
             service.shutdown();
         }

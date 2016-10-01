@@ -61,7 +61,7 @@ public class Downloader implements Runnable {
                 throw new FailedToDownloadException("impo");
             }
         } catch (IOException ex) {
-            throw new FailedToDownloadException("Téléchargement du film " + title + " impossible", ex);
+            throw new FailedToDownloadException("Téléchargement du fichier " + title + " impossible", ex);
         }
     }
 
@@ -75,9 +75,9 @@ public class Downloader implements Runnable {
             String finalFilename = title + videoMime.getExtension();
 
             if (Files.exists(Paths.get(dest.toAbsolutePath().toString(), finalFilename))) {
-                LOGGER.info("le film {} existe déjà", finalFilename);
+                LOGGER.info("le fichier {} existe déjà", finalFilename);
             } else {
-                Path tmpFilm = Files.createTempFile("film_", "downloader");
+                Path tmpFilm = Files.createTempFile("file_", "_downloader");
                 FileOutputStream out = new FileOutputStream(tmpFilm.toFile());
 
                 try (InputStream is = con.getInputStream()) {
@@ -96,7 +96,7 @@ public class Downloader implements Runnable {
             }
 
         } catch (FailedToDownloadException | IOException | MimeTypeException ex) {
-            LOGGER.error("Téléchargement du film " + title + " impossible", ex);
+            LOGGER.error("Téléchargement du fichier " + title + " impossible", ex);
         }
     }
 
