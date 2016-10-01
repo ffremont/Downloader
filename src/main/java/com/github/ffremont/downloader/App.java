@@ -21,7 +21,7 @@ public class App {
     private static final Logger LOGGER = LoggerFactory.getLogger(App.class);
 
     public static void main(String[] args) throws IOException {
-        Path conf = System.getProperty("conf") == null ? Paths.get("./films.txt") : Paths.get(System.getProperty("conf"));
+        Path conf = System.getProperty("conf") == null ? Paths.get("./files.txt") : Paths.get(System.getProperty("conf"));
         Path films = System.getProperty("files") == null ? Paths.get("files") : Paths.get(System.getProperty("files"));
         int threads = System.getProperty("threads") == null ? 3 : Integer.valueOf(System.getProperty("threads"));
 
