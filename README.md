@@ -20,6 +20,7 @@ la vidéo de mes vacances été 2015 :: http://sur-un-joli-site.com/mes-vacances
 la vidéo de mes vacances été 2016 :: http://sur-un-joli-site.com/mes-vacances16
 ```
 * le programme va créer un répertoire **files/** qui contiendra les téléchargements (paramètrable)
+* lançer le programme java [-options] -jar xxxxx.jar
 
 ### Editer le fichier de configuration
 * Rendez-vous sur http://[adresse-de-mon-serveur]:[port]
