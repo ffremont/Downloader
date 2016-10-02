@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Configuration</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body class="">
+        <style>
+            h1{
+                text-align: center;
+            }
+            textarea{
+                position: absolute;
+                height: calc(100% - 100px);
+                width: calc(100% - 25px);
+            }
+
+            body .enregistre, body .a-enregistrer{
+                display: none;
+            }
+            body.a-enregistrer .enregistre, body.enregistre .a-enregistrer{
+                display: none;
+            }
+            body.a-enregistrer .a-enregistrer, body.enregistre .enregistre{
+                font-size: 50%;
+                padding: 3px 10px 3px 10px;
+            }
+            body.a-enregistrer .a-enregistrer{
+                display: inline-block;
+                background: red;
+                color: white;
+            }
+            body.enregistre .enregistre{
+                display: inline-block;
+                background: green;
+                color: white;
+            }
+            body > pre{
+                font-style: italic;
+            }
+        </style>
+
+        <h1>Fichiers pour le téléchargement 
+            <span class="a-enregistrer" onclick="update()">à enregistrer</span>
+            <span class="enregistre">enregistré</span>
+        </h1>
+        <pre>
+            [le nom de mon fichier] :: [l'adresse de mon fichier]
+            Exemple : 
+                ma video :: http://aaaa.fr/ma-video.fr
+        </pre>
+        <textarea id="conf" onchange="update(this)" onkeypress="keypress()"></textarea>
+
+        <script>
+            fetch('/conf')
+                    .then(function (response) {
+                        if (response.status === 200) {
+                            return response.text();
+                        } else {
+                            alert('Erreur lors de la récupération du fichier de configuration');
+                        }
+                    })
+                    .then(function (txt) {
+                        document.getElementById('conf').value = txt;
+                    });
+
+            function keypress() {
+                document.querySelector('body').className = 'a-enregistrer';
+            }
+
+            function update() {
+                fetch("/conf", {
+                    method: "POST",
+                    body: document.getElementById('conf').value
+                }).then(function (response) {
+                    if (response.status !== 200) {
+                        alert('Erreur lors de la sauvegarde');
+                    } else {
+                        document.querySelector('body').className = 'enregistre';
+                    }
+                });
+            }
+        </script>
+    </body>
+</html>
