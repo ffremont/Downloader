@@ -50,12 +50,13 @@ public class Downloader implements Runnable {
             con.setRequestProperty("User-Agent", USER_AGENT);
 
             int responseCode = con.getResponseCode();
-            LOGGER.debug("url {}, code : {}", url, responseCode);
+            LOGGER.debug("fichier à l'adresse '{}', statut HTTP  {}", url, responseCode);
             if (responseCode == 302 || responseCode == 301) {
                 String location = con.getHeaderField("Location") == null ? con.getHeaderField("location") : con.getHeaderField("Location");
                 LOGGER.debug("location => {}", location);
                 return navigateTo(location);
             } else if (responseCode == 200) {
+                LOGGER.info("téléchargement avec succès du fichier '{}'", title);
                 return con;
             } else {
                 throw new FailedToDownloadException("impo");
@@ -67,6 +68,7 @@ public class Downloader implements Runnable {
 
     public void run() {
         try {
+            LOGGER.debug("tentative de téléchargement du fichier '{}'", title);
             HttpURLConnection con = navigateTo(url);
 
             TikaConfig config = TikaConfig.getDefaultConfig();
@@ -75,7 +77,7 @@ public class Downloader implements Runnable {
             String finalFilename = title + videoMime.getExtension();
 
             if (Files.exists(Paths.get(dest.toAbsolutePath().toString(), finalFilename))) {
-                LOGGER.info("le fichier {} existe déjà", finalFilename);
+                LOGGER.info("le fichier '{}' existe déjà", finalFilename);
             } else {
                 Path tmpFilm = Files.createTempFile("file_", "_downloader");
                 FileOutputStream out = new FileOutputStream(tmpFilm.toFile());
@@ -93,10 +95,13 @@ public class Downloader implements Runnable {
                         tmpFilm,
                         Paths.get(dest.toAbsolutePath().toString(), finalFilename)
                 );
+                LOGGER.info("copie avec succès du fichier '{}' dans le répertoire cible", title);
             }
 
         } catch (FailedToDownloadException | IOException | MimeTypeException ex) {
-            LOGGER.error("Téléchargement du fichier " + title + " impossible", ex);
+            LOGGER.error("Téléchargement du fichier '" + title + "' impossible", ex);
+        }finally{
+            App.changeStateOfDownload(title, false);
         }
     }
 
