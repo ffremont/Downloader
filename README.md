@@ -29,7 +29,7 @@ la vidéo de mes vacances été 2016 :: http://sur-un-joli-site.com/mes-vacances
 
 Syntaxe : java [-options] -jar xxxxx.jar
 
-où options :
+* où options :
     * -D
         * conf : chemin vers le fichier de configuration, par défaut "./files.txt"
         * files : chemin du répertoire de destination, par défaut "files/" qui sera créé automatique
