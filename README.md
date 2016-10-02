@@ -40,6 +40,6 @@ Syntaxe : java [-options] -jar xxxxx.jar
 
 ### Utilisations possibles
 * télécharger régulièrement des fichier depuis internet (musiques, photos, vidéos)
-* installer ce programme sur un serveur, Raspberry... pour avoir des fichiers disponible...
+* installer ce programme sur un serveur, Raspberry... pour avoir des fichiers disponibles...
 
 Licence MIT
