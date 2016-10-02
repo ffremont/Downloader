@@ -38,7 +38,7 @@ Syntaxe : java [-options] -jar xxxxx.jar
         * delay : interval de temps en secondes entre 2 relectures du fichier de configuration
         * port : port du serveur web pour éditer le fichier de configuration, par défaut 4567
 
-### Cas d'utilisation
+### Utilisations possibles
 * télécharger régulièrement des fichier depuis internet (musiques, photos, vidéos)
 * installer ce programme sur un serveur, Raspberry... pour avoir des fichiers disponible...
 
