@@ -53,7 +53,7 @@
         <textarea id="conf" onchange="update(this)" onkeypress="keypress()"></textarea>
 
         <script>
-            fetch('/conf')
+            fetch('/data/conf')
                     .then(function (response) {
                         if (response.status === 200) {
                             return response.text();
@@ -70,7 +70,7 @@
             }
 
             function update() {
-                fetch("/conf", {
+                fetch("/data/conf", {
                     method: "POST",
                     body: document.getElementById('conf').value
                 }).then(function (response) {

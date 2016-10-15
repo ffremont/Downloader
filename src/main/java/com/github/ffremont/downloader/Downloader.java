@@ -74,12 +74,17 @@ public class Downloader implements Runnable {
             TikaConfig config = TikaConfig.getDefaultConfig();
             MimeTypes allTypes = MimeTypes.getDefaultMimeTypes();
             MimeType videoMime = allTypes.forName(con.getHeaderField("Content-Type"));
+            
+            App.downloading.get(title).setSize(con.getHeaderFieldLong("Content-Length", -1));
+            
             String finalFilename = title + videoMime.getExtension();
-
+            App.downloading.get(title).setFilename(finalFilename);
+            App.downloading.get(title).setExtension(videoMime.getExtension());
             if (Files.exists(Paths.get(dest.toAbsolutePath().toString(), finalFilename))) {
                 LOGGER.info("le fichier '{}' existe déjà", finalFilename);
             } else {
                 Path tmpFilm = Files.createTempFile("file_", "_downloader");
+                App.downloading.get(title).setTemp(tmpFilm);
                 FileOutputStream out = new FileOutputStream(tmpFilm.toFile());
 
                 try (InputStream is = con.getInputStream()) {
@@ -99,9 +104,11 @@ public class Downloader implements Runnable {
             }
 
         } catch (FailedToDownloadException | IOException | MimeTypeException ex) {
+            App.blacklist.add(title);
+            
             LOGGER.error("Téléchargement du fichier '" + title + "' impossible", ex);
         }finally{
-            App.changeStateOfDownload(title, false);
+            App.downloading.remove(title);
         }
     }
 
