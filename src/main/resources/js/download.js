@@ -1,5 +1,5 @@
 (function () {
-    var items = [];
+    window.items = [];
 
     String.prototype.toDOM = function () {
         var d = document,
@@ -16,7 +16,7 @@
             item.body = item.body ||  '';
             return (item.title.toLowerCase().indexOf(vFilter.toLowerCase()) !== -1) ||
                 (item.body.toLowerCase().indexOf(vFilter.toLowerCase()) !== -1)
-        }) : items;
+        }) : window.items;
 
         document.getElementById("items").innerHTML = '';
         if (itemsFiltered.length === 0) {
@@ -29,6 +29,7 @@
         for (var index in itemsFiltered) {
             var item = itemsFiltered[index];
             var ext = item.tags && item.tags.length ? item.tags[0] : '';
+            var extCls = ext ? '': 'hide';
             var cls = '',
                 style = '';
             if (item.download === -1) {
@@ -36,11 +37,15 @@
             } else if (item.download === 1) {
                 cls = 'complete';
             } else {
-                style = 'background: linear-gradient(to right, #5bc0de ' + (item.download * 100) + '%, white ' + (100 - (item.download * 100)) + '%); */';
+                style = 'background: linear-gradient(to right, #5bc0de ' + (item.download * 100) + '%, white '+(item.download * 100)+'%, white ' + (100 - (item.download * 100)) + '%); */';
             }
             var el = `
 <article class="card ${cls}" >
-  <h3>${item.title} <span class="label">${ext}</span></h3>
+  <h3>
+    ${item.title} ${item.download == -1 ? "" : Math.ceil(item.download * 100)+'%'}<span class="label ${extCls}">${ext}</span>
+    
+    <button class='error shyButton cancel' onclick="cancel(this)" type="button" data-title="${item.title}">Annuler</button>
+</h3>
         <div class="bar" style="${style}"></div>
 </article>
 `;
@@ -49,9 +54,30 @@
     }
 
     document.getElementById('rechercher').addEventListener('keyup', render);
+    document.getElementById('actualiser').addEventListener('click', loadData);
 
-
-    fetch('/data/files')
+    window.cancel = function(me){
+                        debugger;
+        var title = me.getAttribute('data-title');
+        document.getElementById('loader').className = ''; 
+        fetch('/data/files/'+encodeURI(title), {
+            method : 'DELETE'
+        })
+        .then(function (response) {
+            document.getElementById('loader').className = 'hide';
+    
+            if (response.status !== 200) {
+                throw "oups";
+            }
+        })
+        .catch(function (e) {
+            alert('Erreur lors de l\'annulation');
+        });
+   }
+    
+    function loadData() {
+        document.getElementById('loader').className = '';
+        fetch('/data/files')
         .then(function (response) {
             if (response.status !== 200) {
                 throw "oups";
@@ -60,11 +86,15 @@
             }
         })
         .then(function (data) {
-            items = data;
+            window.items = data;
             render();
+            document.getElementById('loader').className = 'hide';
         })
         .catch(function (e) {
-            debugger;
+            document.getElementById('loader').className = 'hide';
             alert('Erreur lors de la récupération des fichiers');
         });
+    }
+    
+    loadData();
 }());

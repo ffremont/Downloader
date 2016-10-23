@@ -16,6 +16,8 @@ Pour ce faire, il suffit de récupérer le lien du fichier / vidéo / image et d
 * relecture des éléments à télécharger tous les X secondes (paramètrable)
 * paramètrage du nombre de fichiers téléchargés à un instant T
 * édition du fichier de configuration via une interface web
+* annuler les téléchargements en cours via l'interface web
+* recherche des téléchargements réalisés
 
 ### Utilisation
 * télécharger java 8 et [installer java 8](http://www.java.com/fr/download/)
@@ -45,6 +47,7 @@ Syntaxe : java [-options] -jar xxxxx.jar
         * threads : nb. de threads qui vont ếté disponible pour traiter les téléchargements à un instant T, par défaut 3
         * delay : interval de temps en secondes entre 2 relectures du fichier de configuration
         * port : port du serveur web pour éditer le fichier de configuration, par défaut 4567
+        * retry : si le lien est en échec, on retente encore N fois
 
 ### Utilisations possibles
 * télécharger régulièrement des fichier depuis internet (musiques, photos, vidéos)

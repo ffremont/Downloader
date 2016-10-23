@@ -9,15 +9,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Spark;
 import static spark.Spark.before;
+import static spark.Spark.delete;
 import static spark.Spark.get;
 import static spark.Spark.halt;
 import static spark.Spark.port;
@@ -32,9 +32,17 @@ public class App {
     private static final Logger LOGGER = LoggerFactory.getLogger(App.class);
 
     public static ConcurrentHashMap<String, Metadata> downloading = new ConcurrentHashMap<>();
-    public static ConcurrentLinkedQueue<String> blacklist = new ConcurrentLinkedQueue<>();
+    
+    public static ConcurrentHashMap<String, Integer> blacklistRetry = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<String, Future<?>> workers = new ConcurrentHashMap<>();
+    
     private static Path conf;
     private static Path films;
+    private static int retry;
+    
+    private static boolean isBlocked(String title){
+        return blacklistRetry.containsKey(title) ? blacklistRetry.get(title) >= retry : false;
+    }
 
     public static void main(String[] args) throws IOException {
         App.conf = System.getProperty("conf") == null ? Paths.get("files.txt") : Paths.get(System.getProperty("conf"));
@@ -42,6 +50,7 @@ public class App {
         final int threads = System.getProperty("threads") == null ? 3 : Integer.valueOf(System.getProperty("threads"));
         final int delay = System.getProperty("delay") == null ? 15 : Integer.valueOf(System.getProperty("delay"));
         final int port = System.getProperty("port") == null ? 4567 : Integer.valueOf(System.getProperty("port"));
+        retry = System.getProperty("retry") == null ? 3 : Integer.valueOf(System.getProperty("retry"));
 
         if (!Files.exists(films)) {
             Files.createDirectory(films);
@@ -61,9 +70,9 @@ public class App {
                     if (split.length == 2) {
                         String title = split[0].trim();
                         String url = split[1].trim();
-                        if (!downloading.containsKey(title) && !blacklist.contains(title)) {
+                        if (!downloading.containsKey(title) && !isBlocked(title)) {
                             downloading.put(title, new Metadata());
-                            service.submit(new Downloader(title, url, films));
+                            workers.put(title, service.submit(new Downloader(title, url, films)));
                         }
                     } else {
                         LOGGER.info("La ligne {} n'est pas lisible", line);
@@ -87,6 +96,16 @@ public class App {
         get("/files", (request, response) -> {
             return Thread.currentThread().getContextClassLoader().getResourceAsStream("download.html");
         });
+        delete("/data/files/:title", (request, response) -> {
+            LOGGER.debug(request.params("title"));
+            
+            String title = request.params("title");
+            if(workers.containsKey(title)){
+                workers.get(title).cancel(true);
+            }
+            
+            return "";
+        });
         get("/resources/*", (request, response) -> {
 
             boolean isJs = request.uri().endsWith(".js"), isCss = request.uri().endsWith(".css");
@@ -108,13 +127,13 @@ public class App {
 
             for (Entry<String, Metadata> entry : downloading.entrySet()) {
                 Metadata metaData = entry.getValue();
-                int advance = 0;
+                float advance = 0;
                 if ((metaData != null) && (metaData.getTemp() != null)) {
                     if (metaData.getSize() == -1) {
                         advance = -1;
                     } else {
                         try {
-                            advance = Math.round(Files.size(metaData.getTemp()) / metaData.getSize());
+                            advance = (float)Files.size(metaData.getTemp()) / (float)metaData.getSize();
                         } catch (IOException ex) {
                             LOGGER.error("oups", ex);
                         }
@@ -122,15 +141,15 @@ public class App {
                 }
 
                 String[] tags = {metaData.getExtension()};
-                if(blacklist.contains(entry.getKey())){
+                if(isBlocked(entry.getKey())){
                     advance = -1;
                 }
                 items.add(new Item(entry.getKey(), null, advance, tags));
             }
             
-            for(String inFaildTitle : blacklist){
-                if(!downloading.containsKey(inFaildTitle)){
-                    items.add(new Item(inFaildTitle, null, -1, null));
+            for(Entry<String, Integer> entry : blacklistRetry.entrySet()){
+                if(!downloading.containsKey(entry.getKey())){
+                    items.add(new Item(entry.getKey(), null, -1, null));
                 }
             }
 
@@ -142,8 +161,12 @@ public class App {
                             String[] tab = p.getFileName().toString().split("\\.");
                             String title = tab[0];
                             
-                            String[] tags = {tab[1]};
-                            items.add(new Item(title, null, 1, tags));
+                            List<String> tags = Arrays.asList();
+                            if(tab.length > 1){
+                                tags = Arrays.asList(tab[1]);
+                            }
+                            String[] rTags = (String[]) tags.toArray();
+                            items.add(new Item(title, null, 1, rTags));
                         }
                     });
 

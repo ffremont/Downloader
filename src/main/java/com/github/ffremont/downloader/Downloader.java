@@ -59,7 +59,7 @@ public class Downloader implements Runnable {
                 LOGGER.info("téléchargement avec succès du fichier '{}'", title);
                 return con;
             } else {
-                throw new FailedToDownloadException("impo");
+                throw new FailedToDownloadException("Status de la réponse invalide "+responseCode);
             }
         } catch (IOException ex) {
             throw new FailedToDownloadException("Téléchargement du fichier " + title + " impossible", ex);
@@ -74,14 +74,23 @@ public class Downloader implements Runnable {
             TikaConfig config = TikaConfig.getDefaultConfig();
             MimeTypes allTypes = MimeTypes.getDefaultMimeTypes();
             MimeType videoMime = allTypes.forName(con.getHeaderField("Content-Type"));
-            
+            String extension = videoMime.getExtension();
+
+            if (title.contains(".")) {
+                String[] splitTitle = title.split("\\.");
+                if (splitTitle.length > 1) {
+                    extension = splitTitle[splitTitle.length - 1];
+                }
+            }
+
+            LOGGER.debug(con.getHeaderFields().entrySet().toString());
             App.downloading.get(title).setSize(con.getHeaderFieldLong("Content-Length", -1));
-            
-            String finalFilename = title + videoMime.getExtension();
+
+            String finalFilename = title + extension;
             App.downloading.get(title).setFilename(finalFilename);
-            App.downloading.get(title).setExtension(videoMime.getExtension());
+            App.downloading.get(title).setExtension(extension);
             if (Files.exists(Paths.get(dest.toAbsolutePath().toString(), finalFilename))) {
-                LOGGER.info("le fichier '{}' existe déjà", finalFilename);
+                LOGGER.debug("le fichier '{}' existe déjà", finalFilename);
             } else {
                 Path tmpFilm = Files.createTempFile("file_", "_downloader");
                 App.downloading.get(title).setTemp(tmpFilm);
@@ -100,15 +109,18 @@ public class Downloader implements Runnable {
                         tmpFilm,
                         Paths.get(dest.toAbsolutePath().toString(), finalFilename)
                 );
+                Files.delete(tmpFilm);
                 LOGGER.info("copie avec succès du fichier '{}' dans le répertoire cible", title);
             }
 
         } catch (FailedToDownloadException | IOException | MimeTypeException ex) {
-            App.blacklist.add(title);
+            App.blacklistRetry.putIfAbsent(title, 0);
             
+            App.blacklistRetry.replace(title, App.blacklistRetry.get(title) + 1);
             LOGGER.error("Téléchargement du fichier '" + title + "' impossible", ex);
-        }finally{
+        } finally {
             App.downloading.remove(title);
+            App.workers.remove(title);
         }
     }
 
