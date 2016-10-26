@@ -6,7 +6,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -54,6 +56,9 @@ public class App {
 
         if (!Files.exists(films)) {
             Files.createDirectory(films);
+        }
+        if(!Files.exists(App.conf)){
+            Files.createFile(App.conf);
         }
         ExecutorService service = Executors.newFixedThreadPool(threads);
 
@@ -108,12 +113,18 @@ public class App {
         });
         get("/resources/*", (request, response) -> {
 
-            boolean isJs = request.uri().endsWith(".js"), isCss = request.uri().endsWith(".css");
-            if (isJs || isCss) {
+                boolean isJs = request.uri().endsWith(".js"), isCss = request.uri().endsWith(".css"), isPng = request.uri().endsWith(".png"), isJson = request.uri().endsWith(".json"), isFavi = request.uri().endsWith(".ico");
+            if (isJs || isCss || isPng || isFavi) {
                 if (isJs) {
                     response.header("Content-Type", "text/javascript");
                 } else if (isCss) {
                     response.header("Content-Type", "text/css");
+                } else if (isPng) {
+                    response.header("Content-Type", "image/png");
+                }else if (isFavi) {
+                    response.header("Content-Type", "image/x-icon");
+                }else if (isJson) {
+                    response.header("Content-Type", "application/json");
                 }
 
                 return Thread.currentThread().getContextClassLoader().getResourceAsStream(request.uri().replace("/resources/", ""));
@@ -123,7 +134,8 @@ public class App {
             return "";
         });
         get("/data/files", (request, response) -> {
-            List<Item> items = new ArrayList<>();
+            //List<Item> items = new ArrayList<>();
+            Map<String, Item> items = new HashMap<>();
 
             for (Entry<String, Metadata> entry : downloading.entrySet()) {
                 Metadata metaData = entry.getValue();
@@ -144,12 +156,12 @@ public class App {
                 if(isBlocked(entry.getKey())){
                     advance = -1;
                 }
-                items.add(new Item(entry.getKey(), null, advance, tags));
+                items.putIfAbsent(entry.getKey(), new Item(entry.getKey(), null, advance, tags));
             }
             
             for(Entry<String, Integer> entry : blacklistRetry.entrySet()){
                 if(!downloading.containsKey(entry.getKey())){
-                    items.add(new Item(entry.getKey(), null, -1, null));
+                    items.putIfAbsent(entry.getKey(), new Item(entry.getKey(), null, -1, null));
                 }
             }
 
@@ -166,11 +178,16 @@ public class App {
                                 tags = Arrays.asList(tab[1]);
                             }
                             String[] rTags = (String[]) tags.toArray();
-                            items.add(new Item(title, null, 1, rTags));
+                            Item item = new Item(title, null, 1, rTags);
+                            
+                            if(items.containsKey(title)){
+                                items.replace(title, item);
+                            }
+                            items.putIfAbsent(title, item);
                         }
                     });
 
-            return items;
+            return items.values();
         }, new JsonTransformer());
 
         get("/data/conf", (request, response) -> {

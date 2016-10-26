@@ -79,7 +79,7 @@ public class Downloader implements Runnable {
             if (title.contains(".")) {
                 String[] splitTitle = title.split("\\.");
                 if (splitTitle.length > 1) {
-                    extension = splitTitle[splitTitle.length - 1];
+                    extension = "."+splitTitle[splitTitle.length - 1];
                 }
             }
 
