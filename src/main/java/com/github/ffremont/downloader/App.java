@@ -17,6 +17,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Spark;
@@ -53,7 +54,7 @@ public class App {
         App.conf = System.getProperty("conf") == null ? Paths.get("files.txt") : Paths.get(System.getProperty("conf"));
         films = System.getProperty("files") == null ? Paths.get("files") : Paths.get(System.getProperty("files"));
         final int threads = System.getProperty("threads") == null ? 3 : Integer.valueOf(System.getProperty("threads"));
-        final int delay = System.getProperty("delay") == null ? 15 : Integer.valueOf(System.getProperty("delay"));
+        final int delay = System.getProperty("delay") == null ? 30 : Integer.valueOf(System.getProperty("delay"));
         final int port = System.getProperty("port") == null ? 4567 : Integer.valueOf(System.getProperty("port"));
         retry = System.getProperty("retry") == null ? 3 : Integer.valueOf(System.getProperty("retry"));
 
@@ -115,7 +116,6 @@ public class App {
             return "";
         });
         get("/resources/*", (request, response) -> {
-
                 boolean isJs = request.uri().endsWith(".js"), isCss = request.uri().endsWith(".css"), isPng = request.uri().endsWith(".png"), isJson = request.uri().endsWith(".json"), isFavi = request.uri().endsWith(".ico");
             if (isJs || isCss || isPng || isFavi) {
                 if (isJs) {
@@ -159,12 +159,16 @@ public class App {
                 if(isBlocked(entry.getKey())){
                     advance = -1;
                 }
-                items.putIfAbsent(entry.getKey(), new Item(entry.getKey(), null, advance, tags));
+                items.putIfAbsent(entry.getKey(), new Item(
+                        Item.getCompleteTitle(entry.getKey(), metaData.getSize()), 
+                        null, 
+                        advance, 
+                        tags));
             }
             
             for(Entry<String, Integer> entry : blacklistRetry.entrySet()){
                 if(!downloading.containsKey(entry.getKey())){
-                    items.putIfAbsent(entry.getKey(), new Item(entry.getKey(), null, -1, null));
+                    items.putIfAbsent(entry.getKey(), new Item(Item.getCompleteTitle(entry.getKey()), null, -1, null));
                 }
             }
 
@@ -182,6 +186,12 @@ public class App {
                             }
                             String[] rTags = (String[]) tags.toArray();
                             Item item = new Item(title, null, 1, rTags);
+                            
+                            try {
+                                item.setTitle(Item.getCompleteTitle(title, Files.size(p)));
+                            } catch (IOException ex) {
+                                LOGGER.error("impossible de récupérer la taille de {}", p.toAbsolutePath().toString(), ex);
+                            }
                             
                             if(items.containsKey(title)){
                                 items.replace(title, item);

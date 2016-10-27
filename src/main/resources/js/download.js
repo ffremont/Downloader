@@ -42,7 +42,7 @@
             var el = `
 <article class="card ${cls}" >
   <h3>
-    ${item.title} ${item.download == -1 ? "" : Math.ceil(item.download * 100)+'%'}<span class="label ${extCls}">${ext}</span>
+    ${item.title} ${item.download == -1 ? "" : ' : '+Math.ceil(item.download * 100)+'%'}<span class="label ${extCls}">${ext}</span>
     
     <button class='error shyButton cancel' onclick="cancel(this)" type="button" data-title="${item.title}">Annuler</button>
 </h3>

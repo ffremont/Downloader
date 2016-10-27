@@ -163,3 +163,12 @@ h1 > a.label {
         -moz-transform: rotate(360deg);
     }
 }
+
+.size {
+    font-size: 60%;
+    position: relative;
+    bottom: 1px;
+    line-height: .8em;
+    vertical-align: super;
+    text-decoration: none;
+}
