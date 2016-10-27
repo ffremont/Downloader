@@ -11,8 +11,6 @@ Le programme downloader permet de télécharger des fichiers en automatique sans
 Pour ce faire, il suffit de récupérer le lien du fichier / vidéo / image et de le placer dans un fichiers "files.txt"
 
 
-![Téléchargements](https://drive.google.com/open?id=0B3RZ6sP4kUBASFhITFdrVElyM2s)
-
 ### Fonctionnalités
 * téléchargement en automatique des fichiers en HTTP
 * relecture des éléments à télécharger tous les X secondes (paramètrable)
