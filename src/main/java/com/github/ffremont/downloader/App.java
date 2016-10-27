@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -37,6 +39,7 @@ public class App {
     
     public static ConcurrentHashMap<String, Integer> blacklistRetry = new ConcurrentHashMap<>();
     public static ConcurrentHashMap<String, Future<?>> workers = new ConcurrentHashMap<>();
+    public static ConcurrentLinkedQueue<String> mustStop = new ConcurrentLinkedQueue<>();
     
     private static Path conf;
     private static Path films;
@@ -105,8 +108,8 @@ public class App {
             LOGGER.debug(request.params("title"));
             
             String title = request.params("title");
-            if(workers.containsKey(title)){
-                workers.get(title).cancel(true);
+            if(!mustStop.contains(title) && downloading.containsKey(title)){
+                mustStop.add(title);
             }
             
             return "";

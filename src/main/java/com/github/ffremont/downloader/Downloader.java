@@ -59,7 +59,7 @@ public class Downloader implements Runnable {
                 LOGGER.info("téléchargement avec succès du fichier '{}'", title);
                 return con;
             } else {
-                throw new FailedToDownloadException("Status de la réponse invalide "+responseCode);
+                throw new FailedToDownloadException("Status de la réponse invalide " + responseCode);
             }
         } catch (IOException ex) {
             throw new FailedToDownloadException("Téléchargement du fichier " + title + " impossible", ex);
@@ -79,7 +79,7 @@ public class Downloader implements Runnable {
             if (title.contains(".")) {
                 String[] splitTitle = title.split("\\.");
                 if (splitTitle.length > 1) {
-                    extension = "."+splitTitle[splitTitle.length - 1];
+                    extension = "." + splitTitle[splitTitle.length - 1];
                 }
             }
 
@@ -93,34 +93,45 @@ public class Downloader implements Runnable {
                 LOGGER.debug("le fichier '{}' existe déjà", finalFilename);
             } else {
                 Path tmpFilm = Files.createTempFile("file_", "_downloader");
-                App.downloading.get(title).setTemp(tmpFilm);
-                FileOutputStream out = new FileOutputStream(tmpFilm.toFile());
 
-                try (InputStream is = con.getInputStream()) {
-                    int nRead;
-                    byte[] data = new byte[10240];
-                    while ((nRead = is.read(data, 0, data.length)) != -1) {
-                        out.write(data, 0, nRead);
+                try {
+                    App.downloading.get(title).setTemp(tmpFilm);
+
+                    FileOutputStream out = new FileOutputStream(tmpFilm.toFile());
+
+                    try (InputStream is = con.getInputStream()) {
+                        int nRead;
+                        byte[] data = new byte[10240];
+                        while ((nRead = is.read(data, 0, data.length)) != -1) {
+                            if(App.mustStop.contains(title)){
+                                throw new StopDownload();
+                            }
+                            out.write(data, 0, nRead);
+                        }
+                        out.flush();
+                        is.close();
                     }
-                    out.flush();
-                    is.close();
+                    Files.copy(
+                            tmpFilm,
+                            Paths.get(dest.toAbsolutePath().toString(), finalFilename)
+                    );
+                } finally {
+                    Files.delete(tmpFilm);
                 }
-                Files.copy(
-                        tmpFilm,
-                        Paths.get(dest.toAbsolutePath().toString(), finalFilename)
-                );
-                Files.delete(tmpFilm);
+
                 LOGGER.info("copie avec succès du fichier '{}' dans le répertoire cible", title);
             }
 
         } catch (FailedToDownloadException | IOException | MimeTypeException ex) {
             App.blacklistRetry.putIfAbsent(title, 0);
-            
+
             App.blacklistRetry.replace(title, App.blacklistRetry.get(title) + 1);
             LOGGER.error("Téléchargement du fichier '" + title + "' impossible", ex);
         } finally {
             App.downloading.remove(title);
             App.workers.remove(title);
+            App.mustStop.remove(title);
+            LOGGER.debug("Arrêt du téléchargement de {}", title);
         }
     }
 
