@@ -12,6 +12,7 @@ Pour ce faire, il suffit de récupérer le lien du fichier / vidéo / image et d
 
 
 ![Ecran de téléchargement](http://res.cloudinary.com/dyuwlqafx/image/upload/v1477895973/Capture_d_%C3%A9cran_-_31102016_-_07_38_36_ewt7sw.png)
+![Ecran de configuration](http://res.cloudinary.com/dyuwlqafx/image/upload/v1477895968/Capture_d_%C3%A9cran_-_31102016_-_07_39_16_keilws.png)
 
 ### Fonctionnalités
 * téléchargement en automatique des fichiers en HTTP
