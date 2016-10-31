@@ -18,6 +18,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import org.apache.tika.config.TikaConfig;
+import org.apache.tika.mime.MimeType;
+import org.apache.tika.mime.MimeTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Spark;
@@ -36,17 +39,19 @@ public class App {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(App.class);
 
-    public static ConcurrentHashMap<String, Metadata> downloading = new ConcurrentHashMap<>();
+    private static final List<String> resourcesWhiteList = Arrays.asList(".js", ".css", ".png", ".json", ".ico");
     
+    public static ConcurrentHashMap<String, Metadata> downloading = new ConcurrentHashMap<>();
+
     public static ConcurrentHashMap<String, Integer> blacklistRetry = new ConcurrentHashMap<>();
     public static ConcurrentHashMap<String, Future<?>> workers = new ConcurrentHashMap<>();
     public static ConcurrentLinkedQueue<String> mustStop = new ConcurrentLinkedQueue<>();
-    
+
     private static Path conf;
     private static Path films;
     private static int retry;
-    
-    private static boolean isBlocked(String title){
+
+    private static boolean isBlocked(String title) {
         return blacklistRetry.containsKey(title) ? blacklistRetry.get(title) >= retry : false;
     }
 
@@ -61,7 +66,7 @@ public class App {
         if (!Files.exists(films)) {
             Files.createDirectory(films);
         }
-        if(!Files.exists(App.conf)){
+        if (!Files.exists(App.conf)) {
             Files.createFile(App.conf);
         }
         ExecutorService service = Executors.newFixedThreadPool(threads);
@@ -107,33 +112,28 @@ public class App {
         });
         delete("/data/files/:title", (request, response) -> {
             LOGGER.debug(request.params("title"));
-            
+
             String title = request.params("title");
-            if(!mustStop.contains(title) && downloading.containsKey(title)){
+            if (!mustStop.contains(title) && downloading.containsKey(title)) {
                 mustStop.add(title);
             }
-            
+
             return "";
         });
         get("/resources/*", (request, response) -> {
-                boolean isJs = request.uri().endsWith(".js"), isCss = request.uri().endsWith(".css"), isPng = request.uri().endsWith(".png"), isJson = request.uri().endsWith(".json"), isFavi = request.uri().endsWith(".ico");
-            if (isJs || isCss || isPng || isFavi) {
-                if (isJs) {
-                    response.header("Content-Type", "text/javascript");
-                } else if (isCss) {
-                    response.header("Content-Type", "text/css");
-                } else if (isPng) {
-                    response.header("Content-Type", "image/png");
-                }else if (isFavi) {
-                    response.header("Content-Type", "image/x-icon");
-                }else if (isJson) {
-                    response.header("Content-Type", "application/json");
-                }
-
-                return Thread.currentThread().getContextClassLoader().getResourceAsStream(request.uri().replace("/resources/", ""));
+            if (!resourcesWhiteList.stream().anyMatch(prefixe -> request.uri().endsWith(prefixe))) {
+                halt(403);
             }
-
-            halt(404);
+            
+            if (request.uri().contains(".")) {
+                String mime = Files.probeContentType(Paths.get(request.uri()));
+                                
+                response.header("Content-Type", mime);
+                return Thread.currentThread().getContextClassLoader().getResourceAsStream(request.uri().replace("/resources/", ""));
+            }else{
+                halt(421);
+            }
+            
             return "";
         });
         get("/data/files", (request, response) -> {
@@ -148,7 +148,7 @@ public class App {
                         advance = -1;
                     } else {
                         try {
-                            advance = (float)Files.size(metaData.getTemp()) / (float)metaData.getSize();
+                            advance = (float) Files.size(metaData.getTemp()) / (float) metaData.getSize();
                         } catch (IOException ex) {
                             LOGGER.error("oups", ex);
                         }
@@ -156,18 +156,18 @@ public class App {
                 }
 
                 String[] tags = {metaData.getExtension()};
-                if(isBlocked(entry.getKey())){
+                if (isBlocked(entry.getKey())) {
                     advance = -1;
                 }
                 items.putIfAbsent(entry.getKey(), new Item(
-                        Item.getCompleteTitle(entry.getKey(), metaData.getSize()), 
-                        null, 
-                        advance, 
+                        Item.getCompleteTitle(entry.getKey(), metaData.getSize()),
+                        null,
+                        advance,
                         tags));
             }
-            
-            for(Entry<String, Integer> entry : blacklistRetry.entrySet()){
-                if(!downloading.containsKey(entry.getKey())){
+
+            for (Entry<String, Integer> entry : blacklistRetry.entrySet()) {
+                if (!downloading.containsKey(entry.getKey())) {
                     items.putIfAbsent(entry.getKey(), new Item(Item.getCompleteTitle(entry.getKey()), null, -1, null));
                 }
             }
@@ -179,21 +179,21 @@ public class App {
                             String filename = p.getFileName().toString();
                             String[] tab = p.getFileName().toString().split("\\.");
                             String title = tab[0];
-                            
+
                             List<String> tags = Arrays.asList();
-                            if(tab.length > 1){
+                            if (tab.length > 1) {
                                 tags = Arrays.asList(tab[1]);
                             }
                             String[] rTags = (String[]) tags.toArray();
                             Item item = new Item(title, null, 1, rTags);
-                            
+
                             try {
                                 item.setTitle(Item.getCompleteTitle(title, Files.size(p)));
                             } catch (IOException ex) {
                                 LOGGER.error("impossible de récupérer la taille de {}", p.toAbsolutePath().toString(), ex);
                             }
-                            
-                            if(items.containsKey(title)){
+
+                            if (items.containsKey(title)) {
                                 items.replace(title, item);
                             }
                             items.putIfAbsent(title, item);

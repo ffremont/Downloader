@@ -29,6 +29,7 @@
         for (var index in itemsFiltered) {
             var item = itemsFiltered[index];
             var ext = item.tags && item.tags.length ? item.tags[0] : '';
+            var jsonTitle = JSON.stringify(item.title);
             var extCls = ext ? '': 'hide';
             var cls = '',
                 style = '';
@@ -44,7 +45,7 @@
   <h3>
     ${item.title} ${item.download == -1 ? "" : ' : '+Math.ceil(item.download * 100)+'%'}<span class="label ${extCls}">${ext}</span>
     
-    <button class='error shyButton cancel' onclick="cancel(this)" type="button" data-title="${item.title}">Annuler</button>
+    <button class='error shyButton cancel' onclick="cancel(this)" type="button" data-title="${item.jsonTitle}">Annuler</button>
 </h3>
         <div class="bar" style="${style}"></div>
 </article>
@@ -57,8 +58,7 @@
     document.getElementById('actualiser').addEventListener('click', loadData);
 
     window.cancel = function(me){
-                        debugger;
-        var title = me.getAttribute('data-title');
+        var title = JSON.parse(me.getAttribute('data-title'));
         document.getElementById('loader').className = ''; 
         fetch('/data/files/'+encodeURI(title), {
             method : 'DELETE'

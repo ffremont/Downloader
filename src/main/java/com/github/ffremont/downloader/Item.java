@@ -34,11 +34,11 @@ public class Item {
     }
 
     private static String convertToStringRepresentation(final long value) {
-        final long[] dividers = new long[]{T, G, M, K, 1};
-        final String[] units = new String[]{"TB", "GB", "MB", "KB", "B"};
-        if (value < 1) {
-            throw new IllegalArgumentException("Invalid file size: " + value);
+        if(value <= 0){
+            return "0 octet";
         }
+        final long[] dividers = new long[]{T, G, M, K, 1};
+        final String[] units = new String[]{"To", "Go", "Mo", "Ko", "octets"};
         String result = null;
         for (int i = 0; i < dividers.length; i++) {
             final long divider = dividers[i];
