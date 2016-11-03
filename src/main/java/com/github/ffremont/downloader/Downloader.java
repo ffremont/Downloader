@@ -80,7 +80,7 @@ public class Downloader implements Runnable {
     public void run() {
         Metadata meta = App.launch.get(title);
         try {
-            LOGGER.debug("tentative de téléchargement du fichier '{}'", title);
+            LOGGER.info("tentative de téléchargement du fichier '{}'", title);
 
             HttpURLConnection con = navigateTo(url, meta);
 
@@ -104,7 +104,7 @@ public class Downloader implements Runnable {
             meta.setFilename(finalFilename);
             meta.setExtension(extension);
             if (Files.exists(Paths.get(dest.toAbsolutePath().toString(), finalFilename))) {
-                LOGGER.debug("le fichier '{}' existe déjà", finalFilename);
+                LOGGER.info("le fichier '{}' existe déjà", finalFilename);
             } else {
                 Path tmpFilm = null;
                 if (meta.getTemp() == null) {
@@ -139,14 +139,13 @@ public class Downloader implements Runnable {
 
                 } finally {
                     if (meta.getDownloaded() >= meta.getSize()) {
-                        LOGGER.debug("Fichier complet et copié dans le répertoire cible");
+                        LOGGER.info("Fichier complet et copié dans le répertoire cible");
                         LOGGER.debug("suppression du fichier temporaire {}", meta.getTemp().toAbsolutePath());
                         Files.delete(tmpFilm);
                     } else {
                         LOGGER.info("Téléchargement partiel de {}", title);
                     }
                 }
-
             }
         } catch (FailedToDownloadException | IOException | MimeTypeException ex) {
             meta.setTentative(meta.getTentative() + 1);

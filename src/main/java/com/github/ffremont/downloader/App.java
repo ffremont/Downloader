@@ -1,26 +1,23 @@
 package com.github.ffremont.downloader;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import org.apache.tika.config.TikaConfig;
-import org.apache.tika.mime.MimeType;
-import org.apache.tika.mime.MimeTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Spark;
@@ -55,10 +52,16 @@ public class App {
     }
 
     public static void main(String[] args) throws IOException {
+        InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("header.txt");
+        try (Scanner scanner = new Scanner(inputStream, StandardCharsets.UTF_8.name())) {
+            System.out.print(scanner.useDelimiter("\\A").next());
+            System.out.println("\n\n");
+        }
+        
         App.conf = System.getProperty("conf") == null ? Paths.get("files.txt") : Paths.get(System.getProperty("conf"));
         films = System.getProperty("files") == null ? Paths.get("files") : Paths.get(System.getProperty("files"));
         final int threads = System.getProperty("threads") == null ? 3 : Integer.valueOf(System.getProperty("threads"));
-        final int delay = System.getProperty("delay") == null ? 5 : Integer.valueOf(System.getProperty("delay"));
+        final int delay = System.getProperty("delay") == null ? 30 : Integer.valueOf(System.getProperty("delay"));
         final int port = System.getProperty("port") == null ? 4567 : Integer.valueOf(System.getProperty("port"));
         retry = System.getProperty("retry") == null ? 3 : Integer.valueOf(System.getProperty("retry"));
 
@@ -72,7 +75,7 @@ public class App {
 
         Executors.newScheduledThreadPool(1).scheduleAtFixedRate(() -> {
             try {
-                LOGGER.info("Relecture du fichier de configuration");
+                LOGGER.debug("relecture du fichier de configuration");
                 List<String> lines = Files.readAllLines(conf);
                 for (String line : lines) {
                     if (line.isEmpty()) {
@@ -88,7 +91,7 @@ public class App {
                             workers.put(title, service.submit(new Downloader(title, url, films)));
                         }
                     } else {
-                        LOGGER.info("La ligne {} n'est pas lisible", line);
+                        LOGGER.warn("La ligne {} n'est pas lisible", line);
                     }
                 }
             } catch (IOException ex) {
@@ -97,6 +100,8 @@ public class App {
         }, 0, delay, TimeUnit.SECONDS);
 
         port(port);
+        LOGGER.info("Serveur accessible sur le port {}", port);
+        
         before((request, response) -> {
             if ("/".equals(request.uri())) {
                 Spark.redirect.get("/", "/files");
