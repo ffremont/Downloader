@@ -31,6 +31,9 @@ public class Downloader implements Runnable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Downloader.class);
 
+    private static final String RANGE_REQUEST_HEADER = "Accept-Ranges";
+    private static final int BUFFER_SIZE = 10240;
+
     private String title;
     private String url;
     private Path dest;
@@ -41,22 +44,30 @@ public class Downloader implements Runnable {
         this.dest = dest;
     }
 
-    private HttpURLConnection navigateTo(String url) throws FailedToDownloadException {
+    private HttpURLConnection navigateTo(String url, Metadata meta) throws FailedToDownloadException {
         try {
             URL obj = new URL(url);
             HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 
             con.setRequestMethod("GET");
             con.setRequestProperty("User-Agent", USER_AGENT);
+            if (meta.isRangesRequest() && (meta.getSize() > -1)) {
+                String byteRange = meta.getDownloaded() + "-" + meta.getSize();
+                con.setRequestProperty("Range", "bytes=" + byteRange);
+            }
 
             int responseCode = con.getResponseCode();
             LOGGER.debug("fichier à l'adresse '{}', statut HTTP  {}", url, responseCode);
             if (responseCode == 302 || responseCode == 301) {
                 String location = con.getHeaderField("Location") == null ? con.getHeaderField("location") : con.getHeaderField("Location");
                 LOGGER.debug("location => {}", location);
-                return navigateTo(location);
-            } else if (responseCode == 200) {
+                return navigateTo(location, meta);
+            } else if (((responseCode % 200) < 200) && ((responseCode / 200) == 1)) {
                 LOGGER.info("téléchargement avec succès du fichier '{}'", title);
+                if (con.getHeaderField(RANGE_REQUEST_HEADER) != null) {
+                    meta.setRangesRequest(con.getHeaderField(RANGE_REQUEST_HEADER).contains("bytes"));
+                }
+
                 return con;
             } else {
                 throw new FailedToDownloadException("Status de la réponse invalide " + responseCode);
@@ -67,46 +78,56 @@ public class Downloader implements Runnable {
     }
 
     public void run() {
+        Metadata meta = App.launch.get(title);
         try {
             LOGGER.debug("tentative de téléchargement du fichier '{}'", title);
-            HttpURLConnection con = navigateTo(url);
 
-            TikaConfig config = TikaConfig.getDefaultConfig();
+            HttpURLConnection con = navigateTo(url, meta);
+
             MimeTypes allTypes = MimeTypes.getDefaultMimeTypes();
             MimeType videoMime = allTypes.forName(con.getHeaderField("Content-Type"));
             String extension = videoMime.getExtension();
 
-            if (title.contains(".")) {
-                String[] splitTitle = title.split("\\.");
+            String realTitle = new String(title);
+            if (realTitle.contains(".")) {
+                String[] splitTitle = realTitle.split("\\.");
                 if (splitTitle.length > 1) {
                     extension = "." + splitTitle[splitTitle.length - 1];
+                    realTitle = realTitle.substring(0, realTitle.lastIndexOf(".") - 1);
                 }
             }
 
             LOGGER.debug(con.getHeaderFields().entrySet().toString());
-            App.downloading.get(title).setSize(con.getHeaderFieldLong("Content-Length", -1));
+            meta.setSize(con.getHeaderFieldLong("Content-Length", -1));
 
-            String finalFilename = title + extension;
-            App.downloading.get(title).setFilename(finalFilename);
-            App.downloading.get(title).setExtension(extension);
+            String finalFilename = realTitle + extension;
+            meta.setFilename(finalFilename);
+            meta.setExtension(extension);
             if (Files.exists(Paths.get(dest.toAbsolutePath().toString(), finalFilename))) {
                 LOGGER.debug("le fichier '{}' existe déjà", finalFilename);
             } else {
-                Path tmpFilm = Files.createTempFile("file_", "_downloader");
+                Path tmpFilm = null;
+                if (meta.getTemp() == null) {
+                    tmpFilm = Files.createTempFile("file_", "_downloader");
+                    meta.setTemp(tmpFilm);
+                } else {
+                    tmpFilm = meta.getTemp();
+                }
 
                 try {
-                    App.downloading.get(title).setTemp(tmpFilm);
-
-                    FileOutputStream out = new FileOutputStream(tmpFilm.toFile());
+                    FileOutputStream out = new FileOutputStream(tmpFilm.toFile(), true);
 
                     try (InputStream is = con.getInputStream()) {
                         int nRead;
-                        byte[] data = new byte[10240];
+                        int offset = meta.getDownloaded();
+                        byte[] data = new byte[BUFFER_SIZE];
                         while ((nRead = is.read(data, 0, data.length)) != -1) {
-                            if(App.mustStop.contains(title)){
+                            if (App.mustStop.contains(title)) {
                                 throw new StopDownload();
                             }
                             out.write(data, 0, nRead);
+                            meta.download(nRead);
+                            offset = 0;
                         }
                         out.flush();
                         is.close();
@@ -115,20 +136,22 @@ public class Downloader implements Runnable {
                             tmpFilm,
                             Paths.get(dest.toAbsolutePath().toString(), finalFilename)
                     );
+
                 } finally {
-                    Files.delete(tmpFilm);
+                    if (meta.getDownloaded() >= meta.getSize()) {
+                        LOGGER.debug("Fichier complet et copié dans le répertoire cible");
+                        LOGGER.debug("suppression du fichier temporaire {}", meta.getTemp().toAbsolutePath());
+                        Files.delete(tmpFilm);
+                    } else {
+                        LOGGER.info("Téléchargement partiel de {}", title);
+                    }
                 }
 
-                LOGGER.info("copie avec succès du fichier '{}' dans le répertoire cible", title);
             }
-
         } catch (FailedToDownloadException | IOException | MimeTypeException ex) {
-            App.blacklistRetry.putIfAbsent(title, 0);
-
-            App.blacklistRetry.replace(title, App.blacklistRetry.get(title) + 1);
+            meta.setTentative(meta.getTentative() + 1);
             LOGGER.error("Téléchargement du fichier '" + title + "' impossible", ex);
         } finally {
-            App.downloading.remove(title);
             App.workers.remove(title);
             App.mustStop.remove(title);
             LOGGER.debug("Arrêt du téléchargement de {}", title);

@@ -16,11 +16,38 @@ public class Metadata {
     private Path temp;
     private String filename;
     private String extension;
+    private int tentative;
+    
+    private boolean rangesRequest;
+    private int downloaded;
 
     public Metadata() {
+        this.tentative = 0;
         this.size = -1;
+        this.downloaded = 0;
+        this.rangesRequest = true;
     }
 
+    public boolean isRangesRequest() {
+        return rangesRequest;
+    }
+
+    public void setRangesRequest(boolean rangesRequest) {
+        this.rangesRequest = rangesRequest;
+    }
+    
+    public int getTentative() {
+        return tentative;
+    }
+
+    public void setTentative(int tentative) {
+        this.tentative = tentative;
+    }
+    
+    public int getDownloaded() {
+        return downloaded;
+    }
+    
     public long getSize() {
         return size;
     }
@@ -51,6 +78,10 @@ public class Metadata {
 
     public void setExtension(String extension) {
         this.extension = extension;
+    }
+
+    void download(int nRead) {
+        this.downloaded += nRead;
     }
     
 }

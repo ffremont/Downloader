@@ -41,9 +41,8 @@ public class App {
 
     private static final List<String> resourcesWhiteList = Arrays.asList(".js", ".css", ".png", ".json", ".ico");
     
-    public static ConcurrentHashMap<String, Metadata> downloading = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<String, Metadata> launch = new ConcurrentHashMap<>();
 
-    public static ConcurrentHashMap<String, Integer> blacklistRetry = new ConcurrentHashMap<>();
     public static ConcurrentHashMap<String, Future<?>> workers = new ConcurrentHashMap<>();
     public static ConcurrentLinkedQueue<String> mustStop = new ConcurrentLinkedQueue<>();
 
@@ -52,14 +51,14 @@ public class App {
     private static int retry;
 
     private static boolean isBlocked(String title) {
-        return blacklistRetry.containsKey(title) ? blacklistRetry.get(title) >= retry : false;
+        return launch.containsKey(title) ? launch.get(title).getTentative() >= retry : false;
     }
 
     public static void main(String[] args) throws IOException {
         App.conf = System.getProperty("conf") == null ? Paths.get("files.txt") : Paths.get(System.getProperty("conf"));
         films = System.getProperty("files") == null ? Paths.get("files") : Paths.get(System.getProperty("files"));
         final int threads = System.getProperty("threads") == null ? 3 : Integer.valueOf(System.getProperty("threads"));
-        final int delay = System.getProperty("delay") == null ? 30 : Integer.valueOf(System.getProperty("delay"));
+        final int delay = System.getProperty("delay") == null ? 5 : Integer.valueOf(System.getProperty("delay"));
         final int port = System.getProperty("port") == null ? 4567 : Integer.valueOf(System.getProperty("port"));
         retry = System.getProperty("retry") == null ? 3 : Integer.valueOf(System.getProperty("retry"));
 
@@ -84,8 +83,8 @@ public class App {
                     if (split.length == 2) {
                         String title = split[0].trim();
                         String url = split[1].trim();
-                        if (!downloading.containsKey(title) && !isBlocked(title)) {
-                            downloading.put(title, new Metadata());
+                        if (!workers.containsKey(title) && !isBlocked(title)) {
+                            launch.putIfAbsent(title, new Metadata());
                             workers.put(title, service.submit(new Downloader(title, url, films)));
                         }
                     } else {
@@ -114,7 +113,7 @@ public class App {
             LOGGER.debug(request.params("title"));
 
             String title = request.params("title");
-            if (!mustStop.contains(title) && downloading.containsKey(title)) {
+            if (!mustStop.contains(title) && workers.containsKey(title)) {
                 mustStop.add(title);
             }
 
@@ -139,9 +138,9 @@ public class App {
         get("/data/files", (request, response) -> {
             //List<Item> items = new ArrayList<>();
             Map<String, Item> items = new HashMap<>();
-
-            for (Entry<String, Metadata> entry : downloading.entrySet()) {
-                Metadata metaData = entry.getValue();
+            
+            for(Entry<String, Future<?>> entry: workers.entrySet()){
+                Metadata metaData = launch.getOrDefault(entry.getKey(), new Metadata());
                 float advance = 0;
                 if ((metaData != null) && (metaData.getTemp() != null)) {
                     if (metaData.getSize() == -1) {
@@ -166,8 +165,8 @@ public class App {
                         tags));
             }
 
-            for (Entry<String, Integer> entry : blacklistRetry.entrySet()) {
-                if (!downloading.containsKey(entry.getKey())) {
+            for (Entry<String, Metadata> entry : launch.entrySet()) {
+                if (!workers.containsKey(entry.getKey())) {
                     items.putIfAbsent(entry.getKey(), new Item(Item.getCompleteTitle(entry.getKey()), null, -1, null));
                 }
             }
