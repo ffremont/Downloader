@@ -11,8 +11,8 @@ Le programme downloader permet de télécharger des fichiers en automatique sans
 Pour ce faire, il suffit de récupérer le lien du fichier / vidéo / image et de le placer dans un fichiers "files.txt"
 
 
-![Ecran de téléchargement](http://res.cloudinary.com/dyuwlqafx/image/upload/v1477895973/Capture_d_%C3%A9cran_-_31102016_-_07_38_36_ewt7sw.png)
-![Ecran de configuration](http://res.cloudinary.com/dyuwlqafx/image/upload/v1477895968/Capture_d_%C3%A9cran_-_31102016_-_07_39_16_keilws.png)
+![Ecran de téléchargement](http://res.cloudinary.com/dyuwlqafx/image/upload/v1478425598/Capture_d_%C3%A9cran_-_06112016_-_10_45_21_y374ra.png)
+![Ecran de configuration](http://res.cloudinary.com/dyuwlqafx/image/upload/v1478425599/Capture_d_%C3%A9cran_-_06112016_-_10_45_48_dwj55a.png)
 
 ### Fonctionnalités
 * téléchargement en automatique des fichiers en HTTP
