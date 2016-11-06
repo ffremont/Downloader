@@ -6,16 +6,23 @@
         <link rel="icon" href="resources/img/favicon.ico" />
         
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="resources/css/picnic.min.css">
     </head>
-    <body class="">
+    <body class="a-enregistrer">
         <style>
             h1{
                 text-align: center;
             }
             textarea{
                 position: absolute;
-                height: calc(100% - 100px);
-                width: calc(100% - 25px);
+                height: calc(100% - 181px);
+                width: calc(100% - 20px);
+                margin-left: 5px;
+                margin-top: 5px;
+            }
+            pre{
+                margin: 0;
+                font-size: 70%;
             }
 
             body .enregistre, body .a-enregistrer{
@@ -46,18 +53,21 @@
                 font-size: 50%;
                 float: left;
             }
+            button.a-enregistrer, button.enregistrer{
+                cursor:pointer;
+            }
         </style>
 
         <h1><a href="/files"> &lt;&lt; Téléchargements</a>  Fichiers pour le téléchargement 
-            <span class="a-enregistrer" onclick="update()">à enregistrer</span>
-            <span class="enregistre">enregistré</span>
+            <button type="button" class="a-enregistrer" onclick="update()">à enregistrer</button>
+            <button type="button" class="enregistre">enregistré</button>
         </h1>
         <pre>
             [le nom de mon fichier] :: [l'adresse de mon fichier]
             Exemple : 
                 ma video :: http://aaaa.fr/ma-video.fr
         </pre>
-        <textarea id="conf" onchange="update(this)" onkeypress="keypress()"></textarea>
+        <textarea id="conf" onkeypress="keypress()"></textarea>
 
         <script>
             fetch('/data/conf')

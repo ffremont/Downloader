@@ -149,6 +149,14 @@ public class Downloader implements Runnable {
             }
         } catch (FailedToDownloadException | IOException | MimeTypeException ex) {
             meta.setTentative(meta.getTentative() + 1);
+            if(App.isBlocked(title) && (meta.getTemp() != null)){
+                try {
+                    Files.delete(meta.getTemp());
+                    meta.setTemp(null);
+                } catch (IOException ex1) {
+                    LOGGER.warn("impossible de supprimer le fichier temporaire", ex1);
+                }
+            }
             LOGGER.error("Téléchargement du fichier '" + title + "' impossible", ex);
         } finally {
             App.workers.remove(title);

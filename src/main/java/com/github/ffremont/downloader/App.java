@@ -47,7 +47,7 @@ public class App {
     private static Path films;
     private static int retry;
 
-    private static boolean isBlocked(String title) {
+    public static boolean isBlocked(String title) {
         return launch.containsKey(title) ? launch.get(title).getTentative() >= retry : false;
     }
 
