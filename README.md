@@ -24,7 +24,7 @@ Pour ce faire, il suffit de récupérer le lien du fichier / vidéo / image et d
 
 ### Utilisation
 * télécharger java 8 et [installer java 8](http://www.java.com/fr/download/)
-* télécharger le programme  en version 1.6 [ici](https://drive.google.com/open?id=0B3RZ6sP4kUBAeTV3S0gyLXcybkE)
+* télécharger le programme  en version 1.7 [ici](https://drive.google.com/open?id=0B3RZ6sP4kUBALTJKWmQ2Ry1nWWM)
 * alimenter le fichier files.txt à côté du programme java (*.jar) ou faite-le via l'interface web
 
 ```text
