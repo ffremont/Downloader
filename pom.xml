@@ -3,7 +3,7 @@
     <groupId>com.github.ffremont</groupId>
     <artifactId>downloader</artifactId>
     <packaging>jar</packaging>
-    <version>1.7</version>
+    <version>1.8-SNAPSHOT</version>
     <name>downloader</name>
     
     <properties>
@@ -101,6 +101,6 @@
         <developerConnection>scm:git:https://github.com/ffremont/Downloader.git</developerConnection>
         <connection>scm:git:https://github.com/ffremont/Downloader.git</connection>
         <url>https://github.com/ffremont/Downloader.git</url>
-        <tag>1.7</tag>
+        <tag>HEAD</tag>
     </scm>
 </project>
