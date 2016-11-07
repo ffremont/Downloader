@@ -93,7 +93,7 @@ public class Downloader implements Runnable {
                 String[] splitTitle = realTitle.split("\\.");
                 if (splitTitle.length > 1) {
                     extension = "." + splitTitle[splitTitle.length - 1];
-                    realTitle = realTitle.substring(0, realTitle.lastIndexOf(".") - 1);
+                    realTitle = realTitle.substring(0, realTitle.lastIndexOf("."));
                 }
             }
 
@@ -103,23 +103,29 @@ public class Downloader implements Runnable {
             String finalFilename = realTitle + extension;
             meta.setFilename(finalFilename);
             meta.setExtension(extension);
-            if (Files.exists(Paths.get(dest.toAbsolutePath().toString(), finalFilename))) {
+            
+            Path destination = Paths.get(dest.toAbsolutePath().toString(), finalFilename);
+            if (Files.exists(destination) && (meta.getSize() != Files.size(destination)) && (meta.getDownloaded() == 0)) {
+                meta.setDownloaded(Long.valueOf(Files.size(destination)).intValue());
+                con = navigateTo(url, meta);
+            }
+            
+            if (Files.exists(destination) && (meta.getSize() == Files.size(destination))) {
                 LOGGER.info("le fichier '{}' existe déjà", finalFilename);
             } else {
-                Path tmpFilm = null;
-                if (meta.getTemp() == null) {
-                    tmpFilm = Files.createTempFile("file_", "_downloader");
-                    meta.setTemp(tmpFilm);
+                Path destinationFile = null;
+                if (meta.getDestination()== null) {
+                    destinationFile = destination; //Files.createTempFile("file_", "_downloader");
+                    meta.setDestination(destinationFile);
                 } else {
-                    tmpFilm = meta.getTemp();
+                    destinationFile = meta.getDestination();
                 }
 
                 try {
-                    FileOutputStream out = new FileOutputStream(tmpFilm.toFile(), true);
+                    FileOutputStream out = new FileOutputStream(destinationFile.toFile(), true);
 
                     try (InputStream is = con.getInputStream()) {
                         int nRead;
-                        int offset = meta.getDownloaded();
                         byte[] data = new byte[BUFFER_SIZE];
                         while ((nRead = is.read(data, 0, data.length)) != -1) {
                             if (App.mustStop.contains(title)) {
@@ -127,21 +133,13 @@ public class Downloader implements Runnable {
                             }
                             out.write(data, 0, nRead);
                             meta.download(nRead);
-                            offset = 0;
                         }
                         out.flush();
                         is.close();
                     }
-                    Files.copy(
-                            tmpFilm,
-                            Paths.get(dest.toAbsolutePath().toString(), finalFilename)
-                    );
-
                 } finally {
                     if (meta.getDownloaded() >= meta.getSize()) {
-                        LOGGER.info("Fichier complet et copié dans le répertoire cible");
-                        LOGGER.debug("suppression du fichier temporaire {}", meta.getTemp().toAbsolutePath());
-                        Files.delete(tmpFilm);
+                        LOGGER.info("Fichier complet dans le répertoire cible");
                     } else {
                         LOGGER.info("Téléchargement partiel de {}", title);
                     }
@@ -149,16 +147,25 @@ public class Downloader implements Runnable {
             }
         } catch (FailedToDownloadException | IOException | MimeTypeException ex) {
             meta.setTentative(meta.getTentative() + 1);
-            if(App.isBlocked(title) && (meta.getTemp() != null)){
+            if(App.isBlocked(title) && (meta.getDestination() != null)){
                 try {
-                    Files.delete(meta.getTemp());
-                    meta.setTemp(null);
+                    Files.deleteIfExists(meta.getDestination());
+                    meta.setDestination(null);
                 } catch (IOException ex1) {
-                    LOGGER.warn("impossible de supprimer le fichier temporaire", ex1);
+                    LOGGER.warn("impossible de supprimer le fichier", ex1);
                 }
             }
             LOGGER.error("Téléchargement du fichier '" + title + "' impossible", ex);
-        } finally {
+        } catch(StopDownload e){
+            meta.setTentative(App.retry + 1);
+            if(meta.getDestination() != null){
+                try {
+                    Files.deleteIfExists(meta.getDestination());
+                } catch (IOException ex) {
+                    LOGGER.warn("impossible de supprimer le fichier", ex);
+                }
+            }
+        }finally {
             App.workers.remove(title);
             App.mustStop.remove(title);
             LOGGER.debug("Arrêt du téléchargement de {}", title);

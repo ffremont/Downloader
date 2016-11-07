@@ -19,6 +19,7 @@ public class Item {
     private static final long T = G * K;
 
     private String title;
+    private String label;
     private String[] tags;
     private String body;
     /**
@@ -26,13 +27,22 @@ public class Item {
      */
     private float download;
 
-    public Item(String title, String body, float download, String[] tags) {
+    public Item(String title, String label, String body, float download, String[] tags) {
         this.title = title;
+        this.label = label;
         this.body = body;
         this.download = download;
         this.tags = tags;
     }
 
+    public String getLabel() {
+        return label;
+    }
+
+    public void setLabel(String label) {
+        this.label = label;
+    }
+    
     private static String convertToStringRepresentation(final long value) {
         if(value <= 0){
             return "0 octet";

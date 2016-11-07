@@ -43,9 +43,9 @@
             var el = `
 <article class="card ${cls}" >
   <h3>
-    ${item.title} ${item.download == -1 ? "" : ' : '+Math.ceil(item.download * 100)+'%'}<span class="label ${extCls}">${ext}</span>
+    ${item.label} ${item.download == -1 ? "" : ' : '+Math.ceil(item.download * 100)+'%'}<span class="label ${extCls}">${ext}</span>
     
-    <button class='error shyButton cancel' onclick="cancel(this)" type="button" data-title="${item.jsonTitle}">Annuler</button>
+    <button class='error shyButton cancel' onclick="cancel(event, this)" type="button" data-title='${jsonTitle}'>Annuler</button>
 </h3>
         <div class="bar" style="${style}"></div>
 </article>
@@ -57,7 +57,7 @@
     document.getElementById('rechercher').addEventListener('keyup', render);
     document.getElementById('actualiser').addEventListener('click', loadData);
 
-    window.cancel = function(me){
+    window.cancel = function(event, me){
         var title = JSON.parse(me.getAttribute('data-title'));
         document.getElementById('loader').className = ''; 
         fetch('/data/files/'+encodeURI(title), {

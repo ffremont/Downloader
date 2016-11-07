@@ -37,15 +37,15 @@ public class App {
     private static final Logger LOGGER = LoggerFactory.getLogger(App.class);
 
     private static final List<String> resourcesWhiteList = Arrays.asList(".js", ".css", ".png", ".json", ".ico");
-    
+
     public static ConcurrentHashMap<String, Metadata> launch = new ConcurrentHashMap<>();
 
     public static ConcurrentHashMap<String, Future<?>> workers = new ConcurrentHashMap<>();
     public static ConcurrentLinkedQueue<String> mustStop = new ConcurrentLinkedQueue<>();
 
     private static Path conf;
-    private static Path films;
-    private static int retry;
+    private static Path files;
+    public static int retry;
 
     public static boolean isBlocked(String title) {
         return launch.containsKey(title) ? launch.get(title).getTentative() >= retry : false;
@@ -57,16 +57,16 @@ public class App {
             System.out.print(scanner.useDelimiter("\\A").next());
             System.out.println("\n\n");
         }
-        
+
         App.conf = System.getProperty("conf") == null ? Paths.get("files.txt") : Paths.get(System.getProperty("conf"));
-        films = System.getProperty("files") == null ? Paths.get("files") : Paths.get(System.getProperty("files"));
+        files = System.getProperty("files") == null ? Paths.get("files") : Paths.get(System.getProperty("files"));
         final int threads = System.getProperty("threads") == null ? 3 : Integer.valueOf(System.getProperty("threads"));
         final int delay = System.getProperty("delay") == null ? 30 : Integer.valueOf(System.getProperty("delay"));
         final int port = System.getProperty("port") == null ? 4567 : Integer.valueOf(System.getProperty("port"));
         retry = System.getProperty("retry") == null ? 3 : Integer.valueOf(System.getProperty("retry"));
 
-        if (!Files.exists(films)) {
-            Files.createDirectory(films);
+        if (!Files.exists(files)) {
+            Files.createDirectory(files);
         }
         if (!Files.exists(App.conf)) {
             Files.createFile(App.conf);
@@ -88,7 +88,7 @@ public class App {
                         String url = split[1].trim();
                         if (!workers.containsKey(title) && !isBlocked(title)) {
                             launch.putIfAbsent(title, new Metadata());
-                            workers.put(title, service.submit(new Downloader(title, url, films)));
+                            workers.put(title, service.submit(new Downloader(title, url, files)));
                         }
                     } else {
                         LOGGER.warn("La ligne {} n'est pas lisible", line);
@@ -101,7 +101,7 @@ public class App {
 
         port(port);
         LOGGER.info("Serveur accessible sur le port {}", port);
-        
+
         before((request, response) -> {
             if ("/".equals(request.uri())) {
                 Spark.redirect.get("/", "/files");
@@ -128,31 +128,31 @@ public class App {
             if (!resourcesWhiteList.stream().anyMatch(prefixe -> request.uri().endsWith(prefixe))) {
                 halt(403);
             }
-            
+
             if (request.uri().contains(".")) {
                 String mime = Files.probeContentType(Paths.get(request.uri()));
-                                
+
                 response.header("Content-Type", mime);
                 return Thread.currentThread().getContextClassLoader().getResourceAsStream(request.uri().replace("/resources/", ""));
-            }else{
+            } else {
                 halt(421);
             }
-            
+
             return "";
         });
         get("/data/files", (request, response) -> {
             //List<Item> items = new ArrayList<>();
             Map<String, Item> items = new HashMap<>();
-            
-            for(Entry<String, Future<?>> entry: workers.entrySet()){
+
+            for (Entry<String, Future<?>> entry : workers.entrySet()) {
                 Metadata metaData = launch.getOrDefault(entry.getKey(), new Metadata());
                 float advance = 0;
-                if ((metaData != null) && (metaData.getTemp() != null)) {
+                if ((metaData != null) && (metaData.getDestination() != null)) {
                     if (metaData.getSize() == -1) {
                         advance = -1;
                     } else {
                         try {
-                            advance = (float) Files.size(metaData.getTemp()) / (float) metaData.getSize();
+                            advance = (float) Files.size(metaData.getDestination()) / (float) metaData.getSize();
                         } catch (IOException ex) {
                             LOGGER.error("oups", ex);
                         }
@@ -164,6 +164,7 @@ public class App {
                     advance = -1;
                 }
                 items.putIfAbsent(entry.getKey(), new Item(
+                        entry.getKey(),
                         Item.getCompleteTitle(entry.getKey(), metaData.getSize()),
                         null,
                         advance,
@@ -172,11 +173,11 @@ public class App {
 
             for (Entry<String, Metadata> entry : launch.entrySet()) {
                 if (!workers.containsKey(entry.getKey())) {
-                    items.putIfAbsent(entry.getKey(), new Item(Item.getCompleteTitle(entry.getKey()), null, -1, null));
+                    items.putIfAbsent(entry.getKey(), new Item(entry.getKey(), Item.getCompleteTitle(entry.getKey()), null, -1, null));
                 }
             }
 
-            Files.walk(films).
+            Files.walk(files).
                     sorted((a, b) -> b.compareTo(a)). // reverse; files before dirs
                     forEach((Path p) -> {
                         if (p.toFile().isFile()) {
@@ -189,18 +190,21 @@ public class App {
                                 tags = Arrays.asList(tab[1]);
                             }
                             String[] rTags = (String[]) tags.toArray();
-                            Item item = new Item(title, null, 1, rTags);
+                            Item item = new Item(title, title, null, 1, rTags);
 
                             try {
-                                item.setTitle(Item.getCompleteTitle(title, Files.size(p)));
+                                item.setLabel(Item.getCompleteTitle(title, Files.size(p)));
                             } catch (IOException ex) {
                                 LOGGER.error("impossible de récupérer la taille de {}", p.toAbsolutePath().toString(), ex);
                             }
 
-                            if (items.containsKey(title)) {
-                                items.replace(title, item);
+                            if (!isBlocked(title)) {
+                                if(!workers.containsKey(filename) && !workers.containsKey(title)){
+                                    items.putIfAbsent(filename, item);
+                                }                               
+                                
                             }
-                            items.putIfAbsent(title, item);
+
                         }
                     });
 

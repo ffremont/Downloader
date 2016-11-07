@@ -13,7 +13,7 @@ import java.nio.file.Path;
  */
 public class Metadata {
     private long size;
-    private Path temp;
+    private Path destination;
     private String filename;
     private String extension;
     private int tentative;
@@ -56,12 +56,12 @@ public class Metadata {
         this.size = size;
     }
 
-    public Path getTemp() {
-        return temp;
+    public Path getDestination() {
+        return destination;
     }
 
-    public void setTemp(Path temp) {
-        this.temp = temp;
+    public void setDestination(Path destination) {
+        this.destination = destination;
     }
 
     public String getFilename() {
@@ -82,6 +82,10 @@ public class Metadata {
 
     void download(int nRead) {
         this.downloaded += nRead;
+    }
+
+    public void setDownloaded(int downloaded) {
+        this.downloaded = downloaded;
     }
     
 }
