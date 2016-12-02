@@ -85,6 +85,11 @@ public class App {
                     String[] split = line.split("::");
                     if (split.length == 2) {
                         String title = split[0].trim();
+                        if(title.chars().filter(num -> num == '.').count() >= 2){
+                            String titleOnly = title.substring(0, title.lastIndexOf("."));
+                            title = titleOnly.replaceAll("\\.", " ")+title.substring(title.lastIndexOf("."));
+                        }
+                        
                         String url = split[1].trim();
                         if (!workers.containsKey(title) && !isBlocked(title)) {
                             launch.putIfAbsent(title, new Metadata());
@@ -182,12 +187,12 @@ public class App {
                     forEach((Path p) -> {
                         if (p.toFile().isFile()) {
                             String filename = p.getFileName().toString();
-                            String[] tab = p.getFileName().toString().split("\\.");
-                            String title = tab[0];
+                                String title = filename.substring(0, filename.lastIndexOf("."));
 
                             List<String> tags = Arrays.asList();
-                            if (tab.length > 1) {
-                                tags = Arrays.asList(tab[1]);
+                            if (filename.lastIndexOf(".")+1 < filename.length()) {
+                                String extension = filename.substring(filename.lastIndexOf(".")+1);
+                                tags = Arrays.asList(extension);
                             }
                             String[] rTags = (String[]) tags.toArray();
                             Item item = new Item(title, title, null, 1, rTags);
@@ -198,11 +203,13 @@ public class App {
                                 LOGGER.error("impossible de récupérer la taille de {}", p.toAbsolutePath().toString(), ex);
                             }
 
-                            if (!isBlocked(title)) {
-                                if(!workers.containsKey(filename) && !workers.containsKey(title)){
-                                    items.putIfAbsent(filename, item);
-                                }                               
+                            if(!workers.containsKey(filename) && !workers.containsKey(title)){
+                                if(launch.containsKey(title)){
+                                    items.remove(title);
+                                }
                                 
+                                items.putIfAbsent(filename, item);
+                                items.put(filename, item);
                             }
 
                         }
