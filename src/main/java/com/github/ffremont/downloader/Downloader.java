@@ -79,7 +79,7 @@ public class Downloader implements Runnable {
 
     public void run() {
         Metadata meta = App.launch.get(title);
-        try {
+        try {            
             LOGGER.info("tentative de téléchargement du fichier '{}'", title);
 
             HttpURLConnection con = navigateTo(url, meta);
@@ -139,6 +139,7 @@ public class Downloader implements Runnable {
                     }
                 } finally {
                     if (meta.getDownloaded() >= meta.getSize()) {
+                        meta.setTentative(App.retry + 1);
                         LOGGER.info("Fichier complet dans le répertoire cible");
                     } else {
                         LOGGER.info("Téléchargement partiel de {}", title);
