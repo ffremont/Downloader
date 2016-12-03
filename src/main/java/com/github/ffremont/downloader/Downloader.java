@@ -112,6 +112,7 @@ public class Downloader implements Runnable {
             
             if (Files.exists(destination) && (meta.getSize() == Files.size(destination))) {
                 LOGGER.info("le fichier '{}' existe déjà", finalFilename);
+                meta.setDestination(destination);
             } else {
                 Path destinationFile = null;
                 if (meta.getDestination()== null) {

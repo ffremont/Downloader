@@ -146,40 +146,32 @@ public class App {
             return "";
         });
         get("/data/files", (request, response) -> {
-            //List<Item> items = new ArrayList<>();
             Map<String, Item> items = new HashMap<>();
-
-            for (Entry<String, Future<?>> entry : workers.entrySet()) {
-                Metadata metaData = launch.getOrDefault(entry.getKey(), new Metadata());
-                float advance = 0;
-                if ((metaData != null) && (metaData.getDestination() != null)) {
-                    if (metaData.getSize() == -1) {
-                        advance = -1;
-                    } else {
-                        try {
+            
+            
+            for(Map.Entry<String, Metadata> entry : launch.entrySet()){
+                float advance = -1;
+                
+                Metadata metaData = entry.getValue();
+                String[] tags = {metaData.getExtension()};
+                
+                if (metaData.getSize() != -1) {
+                    try {
+                        if(metaData.getDestination() != null){
                             advance = (float) Files.size(metaData.getDestination()) / (float) metaData.getSize();
-                        } catch (IOException ex) {
-                            LOGGER.error("oups", ex);
                         }
+                    } catch (IOException ex) {
+                        LOGGER.error("oups", ex);
                     }
                 }
-
-                String[] tags = {metaData.getExtension()};
-                if (isBlocked(entry.getKey())) {
-                    advance = -1;
-                }
+                
                 items.putIfAbsent(entry.getKey(), new Item(
-                        entry.getKey(),
-                        Item.getCompleteTitle(entry.getKey(), metaData.getSize()),
-                        null,
-                        advance,
-                        tags));
-            }
-
-            for (Entry<String, Metadata> entry : launch.entrySet()) {
-                if (!workers.containsKey(entry.getKey())) {
-                    items.putIfAbsent(entry.getKey(), new Item(entry.getKey(), Item.getCompleteTitle(entry.getKey()), null, -1, null));
-                }
+                    entry.getKey(),
+                    Item.getCompleteTitle(entry.getKey(), metaData.getSize()),
+                    null,
+                    advance,
+                    tags)
+                );
             }
 
             Files.walk(files).
