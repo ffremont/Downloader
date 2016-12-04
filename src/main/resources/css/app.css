@@ -175,3 +175,26 @@ h1 > a.label {
     vertical-align: super;
     text-decoration: none;
 }
+
+#used{
+    line-height: 54px;
+    font-size: 108%;
+    font-weight: bold;
+    float: right;
+    margin-left: 8px;
+}
+
+
+@media screen and (max-width: 800px) {
+    h1.brand{
+        display:none;
+    }
+    nav.demo .menu input{
+        width: 100%;
+    }
+    
+    nav.demo .menu{
+        width: calc(100% - 133px);
+    }
+}
+

@@ -10,15 +10,17 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
         <link rel="stylesheet" href="resources/css/picnic.min.css">
-        <link rel="stylesheet" href="resources/css/app.css">
-        <script type="text/javascript" src="resources/js/download.js" async></script>
+        <link rel="stylesheet" href="resources/css/app.css">        
     </head>
 
     <body>
         <nav class="demo">
             <h1 class="brand">Téléchargements <a href="/conf" class="label">Configuration</a></h1>
 
+            <span id="used">10 %</span>
+            
             <button type="button" id="actualiser" class="actualiser">Actualiser</button>
+            
             <div class="menu">
                 <input placeholder="rechercher..." type="search" id="rechercher" />
             </div>
@@ -34,6 +36,9 @@
         <div id="items">
 
         </div>
+        
+        
+        <script type="text/javascript" src="resources/js/download.js"></script>
     </body>
 
 </html>

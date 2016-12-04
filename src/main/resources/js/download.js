@@ -1,6 +1,10 @@
 (function () {
     window.items = [];
 
+    window.onClickConfMobile = function(){
+        location.href="/conf";
+    };
+
     String.prototype.toDOM = function () {
         var d = document,
             i, a = d.createElement("div"),
@@ -74,9 +78,28 @@
             alert('Erreur lors de l\'annulation');
         });
    }
+   
+   function fetchSpace(){
+       return fetch('/space')
+              .then(function (response) {
+                    if (response.status !== 200) {
+                        throw "oups";
+                    } else {
+                        return response.json();
+                    }
+                })
+                .then(function (data) {
+                    document.getElementById('used').innerHTML = data.percentUsed+'% utilisé';                   
+                })
+                .catch(function (e) {
+                    document.getElementById('loader').className = 'hide';
+                    alert('Erreur lors de la récupération des fichiers');
+                });      
+   }
     
     function loadData() {
         document.getElementById('loader').className = '';
+        fetchSpace();
         fetch('/data/files')
         .then(function (response) {
             if (response.status !== 200) {

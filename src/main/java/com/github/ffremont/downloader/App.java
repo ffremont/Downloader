@@ -119,6 +119,13 @@ public class App {
         get("/files", (request, response) -> {
             return Thread.currentThread().getContextClassLoader().getResourceAsStream("download.html");
         });
+        get("/space", (request, response) -> {
+            long freeSpace = files.toFile().getFreeSpace();
+            long totalSpace = files.toFile().getTotalSpace();
+            float percent = (float) (100 - (totalSpace > 0 ? Math.round(((float)freeSpace/totalSpace)*10000) / 100.0 : 0.0));
+            
+            return new SpaceFile(percent);
+        }, new JsonTransformer());
         delete("/data/files/:title", (request, response) -> {
             LOGGER.debug(request.params("title"));
 
@@ -148,9 +155,8 @@ public class App {
         get("/data/files", (request, response) -> {
             Map<String, Item> items = new HashMap<>();
             
-            
             for(Map.Entry<String, Metadata> entry : launch.entrySet()){
-                float advance = -1;
+                float advance = workers.containsKey(entry.getKey()) ? 0 : -1;
                 
                 Metadata metaData = entry.getValue();
                 String[] tags = {metaData.getExtension()};
@@ -179,10 +185,10 @@ public class App {
                     forEach((Path p) -> {
                         if (p.toFile().isFile()) {
                             String filename = p.getFileName().toString();
-                                String title = filename.substring(0, filename.lastIndexOf("."));
+                            String title =  filename.contains(".") ? filename.substring(0, filename.lastIndexOf(".")) : filename;
 
                             List<String> tags = Arrays.asList();
-                            if (filename.lastIndexOf(".")+1 < filename.length()) {
+                            if (filename.contains(".") && (filename.lastIndexOf(".")+1 < filename.length())) {
                                 String extension = filename.substring(filename.lastIndexOf(".")+1);
                                 tags = Arrays.asList(extension);
                             }
@@ -203,7 +209,6 @@ public class App {
                                 items.putIfAbsent(filename, item);
                                 items.put(filename, item);
                             }
-
                         }
                     });
 
