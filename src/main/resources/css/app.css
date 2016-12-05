@@ -196,5 +196,8 @@ h1 > a.label {
     nav.demo .menu{
         width: calc(100% - 133px);
     }
+    #used{
+        display:none;
+    }
 }
 
