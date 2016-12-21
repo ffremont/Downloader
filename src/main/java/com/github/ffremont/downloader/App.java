@@ -60,7 +60,7 @@ public class App {
 
         App.conf = System.getProperty("conf") == null ? Paths.get("files.txt") : Paths.get(System.getProperty("conf"));
         files = System.getProperty("files") == null ? Paths.get("files") : Paths.get(System.getProperty("files"));
-        final int threads = System.getProperty("threads") == null ? 3 : Integer.valueOf(System.getProperty("threads"));
+        final int threads = System.getProperty("threads") == null ? 2 : Integer.valueOf(System.getProperty("threads"));
         final int delay = System.getProperty("delay") == null ? 30 : Integer.valueOf(System.getProperty("delay"));
         final int port = System.getProperty("port") == null ? 4567 : Integer.valueOf(System.getProperty("port"));
         retry = System.getProperty("retry") == null ? 3 : Integer.valueOf(System.getProperty("retry"));
@@ -91,7 +91,8 @@ public class App {
                         }
                         
                         String url = split[1].trim();
-                        if (!workers.containsKey(title) && !isBlocked(title)) {
+                        final String tTitle = new String(title);
+                        if (!workers.containsKey(title) && !isBlocked(title) && !Files.list(files).anyMatch(file -> file.toFile().getName().contains(tTitle+"."))) {
                             launch.putIfAbsent(title, new Metadata());
                             workers.put(title, service.submit(new Downloader(title, url, files)));
                         }
